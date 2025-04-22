@@ -1,0 +1,114 @@
+pipeline {
+    agent any
+    environment {
+        IMAGE_NAME = "java-web1"
+        GOOGLE_APPLICATION_CREDENTIALS = credentials('gcp')
+        DEPLOY_YAML=  "deploy.yml"
+    }
+    stages {
+        stage("Docker Hub Connection") {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'docker-hub', 
+                                                  usernameVariable: 'DOCKER_USER', 
+                                                  passwordVariable: 'DOCKER_PASS')]) {
+                    sh '''
+                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                    '''
+                }
+            }
+        }
+
+        stage("Google Cloud Login") {
+            steps {
+                sh '''
+                gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
+                gcloud auth configure-docker us-central1-docker.pkg.dev
+                '''
+            }
+        }
+
+        stage('Build & SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') { // Use the name configured in Jenkins settings
+                    sh '''
+                           mvn clean verify sonar:sonar \
+                            -Dsonar.projectKey=java1 \
+                            -Dsonar.projectName='java1' \
+                            -Dsonar.host.url=http://192.168.2.171:9000 \
+                            -Dsonar.token=squ_6ab0f309754cb36f88dd1ba5de13cfa1672c1437
+                    '''
+                }
+            }
+        }
+
+        stage("Quality Gate") {
+            steps {
+              timeout(time: 10, unit: 'MINUTES') {
+                waitForQualityGate abortPipeline: true
+              }
+            }
+          }
+
+
+        stage("Run Docker Compose") {
+            steps {
+                sh '''
+                docker build -t "${IMAGE_NAME}" .
+                '''
+            }
+        }
+
+        stage("Terraform Create Instance") {
+            steps {
+                sh '''
+                terraform init
+                terraform plan
+                terraform apply --auto-approve
+                '''
+            }
+        }
+
+        stage("Docker Tags & Push (Python App)") {
+            steps {
+                sh '''
+                docker tag ${IMAGE_NAME} ganesh6498/${IMAGE_NAME}:${BUILD_NUMBER}
+                docker push ganesh6498/${IMAGE_NAME}:${BUILD_NUMBER}
+
+                sed 
+
+               
+                '''
+            }
+        }
+
+        stage('Update Deployment File') {
+            steps {
+                script {
+                    echo 'Updating deployment YAML with the latest Docker image...'
+                    sh """
+                    sed -i 's|image: .*|image: ganesh6498/${IMAGE_NAME}:${BUILD_NUMBER}|' ${DEPLOY_YAML}
+                    """
+                }
+            }
+        }
+
+        stage(" connect to cluster"){
+            steps{
+                sh """ 
+                   gcloud container clusters get-credentials cluster-1 --zone us-central1-c --project sam-453310
+                
+                """
+            }
+        }
+        stage (" run the deployment"){
+            steps{
+                sh """ 
+                         kubectl apply -f deploy.yml               
+                """
+            }
+        }
+        
+    
+    }
+}
+
