@@ -29,15 +29,16 @@ pipeline {
 
         stage('Build & SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('SonarQube') { // Use the name configured in Jenkins settings
+               withSonarQubeEnv('SonarQube') {
                     sh '''
-                           mvn clean verify sonar:sonar \
-                            -Dsonar.projectKey=java1 \
-                            -Dsonar.projectName='java1' \
-                            -Dsonar.host.url=http://192.168.2.171:9000 \
-                            -Dsonar.token=squ_6ab0f309754cb36f88dd1ba5de13cfa1672c1437
+                        mvn clean verify sonar:sonar \
+                          -Dsonar.projectKey=java1 \
+                          -Dsonar.projectName=java1 \
+                          -Dsonar.host.url=http://192.168.2.171:9000 \
+                          -Dsonar.token=squ_6ab0f309754cb36f88dd1ba5de13cfa1672c1437
                     '''
                 }
+
             }
         }
 
