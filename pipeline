@@ -58,15 +58,7 @@ pipeline {
             }
         }
 
-        stage("Terraform Create Instance") {
-            steps {
-                sh '''
-                terraform init
-                terraform plan
-                terraform apply --auto-approve
-                '''
-            }
-        }
+       
 
         stage("Docker Tags & Push (Python App)") {
             steps {
@@ -74,7 +66,7 @@ pipeline {
                 docker tag ${IMAGE_NAME} ganesh6498/${IMAGE_NAME}:${BUILD_NUMBER}
                 docker push ganesh6498/${IMAGE_NAME}:${BUILD_NUMBER}
 
-                sed 
+              
 
                
                 '''
