@@ -14,7 +14,7 @@ spec:
     spec:                           # ❗️Fixed: was `sepc`
       containers:
         - name: java-app
-          image: ganesh6498/java-web1:latest  # ❗️Removed space before `latest`
+          image: ganesh6498/java-sonar-harness:latest  # ❗️Removed space before `latest`
           ports:                              # ❗️Fixed: was `port` (should be plural)
             - containerPort: 8081
 
